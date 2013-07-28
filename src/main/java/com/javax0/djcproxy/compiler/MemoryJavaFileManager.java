@@ -1,4 +1,4 @@
-package com.javax0.djcproxy;
+package com.javax0.djcproxy.compiler;
 
 import java.io.IOException;
 
@@ -8,11 +8,11 @@ import javax.tools.JavaFileObject;
 import javax.tools.JavaFileObject.Kind;
 import javax.tools.StandardJavaFileManager;
 
-public class InMemoryOutputJavaFileManager extends
+public class MemoryJavaFileManager extends
 		ForwardingJavaFileManager<StandardJavaFileManager> {
 	private MemoryFileObject classFile;
 
-	protected InMemoryOutputJavaFileManager(StandardJavaFileManager fileManager) {
+	protected MemoryJavaFileManager(final StandardJavaFileManager fileManager) {
 		super(fileManager);
 	}
 
@@ -21,13 +21,13 @@ public class InMemoryOutputJavaFileManager extends
 	}
 
 	@Override
-	public ClassLoader getClassLoader(Location location) {
+	public ClassLoader getClassLoader(final Location location) {
 		return super.getClassLoader(location);
 	}
 
 	@Override
-	public JavaFileObject getJavaFileForOutput(Location location,
-			String className, Kind kind, FileObject sibling) throws IOException {
+	public JavaFileObject getJavaFileForOutput(final Location location,
+			final String className, final Kind kind, final FileObject sibling) throws IOException {
 		classFile = new MemoryFileObject(className);
 		return classFile;
 	}

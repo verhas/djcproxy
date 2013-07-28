@@ -1,4 +1,4 @@
-package com.javax0.djcproxy;
+package com.javax0.djcproxy.compiler;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -49,12 +49,12 @@ public class MemoryFileObject implements JavaFileObject {
 	}
 
 	@Override
-	public Reader openReader(boolean ignoreEncodingErrors) throws IOException {
+	public Reader openReader(final boolean ignoreEncodingErrors) throws IOException {
 		return null;
 	}
 
 	@Override
-	public CharSequence getCharContent(boolean ignoreEncodingErrors)
+	public CharSequence getCharContent(final boolean ignoreEncodingErrors)
 			throws IOException {
 		return null;
 	}
@@ -80,7 +80,7 @@ public class MemoryFileObject implements JavaFileObject {
 	}
 
 	@Override
-	public boolean isNameCompatible(String simpleName, Kind kind) {
+	public boolean isNameCompatible(final String simpleName, final Kind kind) {
 		return true;
 	}
 

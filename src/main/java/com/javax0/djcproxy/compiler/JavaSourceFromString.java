@@ -1,4 +1,4 @@
-package com.javax0.djcproxy;
+package com.javax0.djcproxy.compiler;
 
 import java.net.URI;
 
@@ -18,14 +18,14 @@ public class JavaSourceFromString extends SimpleJavaFileObject {
      * @param name the name of the compilation unit represented by this file object
      * @param code the source code for the compilation unit represented by this file object
      */
-    JavaSourceFromString(String name, String code) {
+    JavaSourceFromString(final String name, final String code) {
         super(URI.create("string:///" + name.replace('.','/') + Kind.SOURCE.extension),
               Kind.SOURCE);
         this.code = code;
     }
 
     @Override
-    public CharSequence getCharContent(boolean ignoreEncodingErrors) {
+    public CharSequence getCharContent(final boolean ignoreEncodingErrors) {
         return code;
     }
 }

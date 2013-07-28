@@ -1,4 +1,4 @@
-package com.javax0.djcproxy;
+package com.javax0.djcproxy.compiler;
 
 import java.io.IOException;
 
@@ -10,14 +10,15 @@ public class StringFileManager extends
 		ForwardingJavaFileManager<JavaFileManager> {
 	private final JavaFileManager extendedFileManager;
 
-	protected StringFileManager(JavaFileManager fileManager) {
+	protected StringFileManager(final JavaFileManager fileManager) {
 		super(fileManager);
 		extendedFileManager = fileManager;
 	}
 
+	@Override
 	public JavaFileObject getJavaFileForInput(
-			JavaFileManager.Location location, String className,
-			JavaFileObject.Kind kind) throws IOException {
+			final JavaFileManager.Location location, final String className,
+			final JavaFileObject.Kind kind) throws IOException {
 		final JavaFileObject returnValue;
 
 		if (JavaFileObject.Kind.SOURCE.equals(kind)
