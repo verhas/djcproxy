@@ -61,7 +61,7 @@ class ProxySourceFactory<Proxy> {
 		sourceBuilder.append(generatedClassName);
 		sourceBuilder.append(" ");
 		sourceBuilder.append("extends ");
-		sourceBuilder.append(klass.getName());
+		sourceBuilder.append(klass.getName().replaceAll("\\$", "."));
 		sourceBuilder.append(" ");
 		sourceBuilder.append("implements ");
 		sourceBuilder.append(ProxySetter.class.getCanonicalName());

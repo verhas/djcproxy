@@ -6,7 +6,7 @@ import org.junit.Test;
 
 public class ProxyFactoryTest {
 
-	public class A {
+	public static class A {
 		public void method() {
 			System.out.println("A.method()");
 		}
@@ -32,6 +32,7 @@ public class ProxyFactoryTest {
 		ProxyFactory<A> factory = new ProxyFactory<>();
 		A s = factory.create(a, null);
 		System.out.println(s);
+		s.method();
 
 	}
 

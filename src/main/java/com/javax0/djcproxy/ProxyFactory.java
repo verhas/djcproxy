@@ -21,6 +21,7 @@ public class ProxyFactory<Proxy> {
 	public Proxy create(Proxy originalObject, MethodInterceptor interceptor) throws Exception {
 		ProxySourceFactory<Proxy> sourceFactory = new ProxySourceFactory<>(callbackFilter);
 		String sourceCode = sourceFactory.create(originalObject);
+//		System.out.println(sourceCode);
 		Compiler compiler = new Compiler();
 		compiler.setClassLoader(originalObject.getClass().getClassLoader());
 		Class<?> proxyClass = compiler.compile(sourceCode, sourceFactory.getGeneratedClassName());
