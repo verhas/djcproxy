@@ -1,7 +1,5 @@
 package com.javax0.djcproxy;
 
-import java.io.FileOutputStream;
-
 import com.javax0.djcproxy.compiler.Compiler;
 
 public class ProxyFactory<Proxy> {
@@ -25,10 +23,6 @@ public class ProxyFactory<Proxy> {
 		ProxySourceFactory<Proxy> sourceFactory = new ProxySourceFactory<>(
 				callbackFilter);
 		String sourceCode = sourceFactory.create(originalObject);
-		FileOutputStream fos = new FileOutputStream(("src/main/java/" + originalObject.getClass().getName()).replaceAll("\\.", "/")+".java");
-		fos.write(sourceCode.getBytes("utf-8"));
-		fos.close();
-//		System.out.println(sourceCode);
 		Compiler compiler = new Compiler();
 		compiler.setClassLoader(originalObject.getClass().getClassLoader());
 		Class<?> proxyClass = compiler.compile(sourceCode,
