@@ -16,7 +16,7 @@ public class Compiler {
 		this.classLoader = classLoader;
 	}
 
-	public Class<?> compile(String sourceCode, String className)
+	public Class<?> compile(String sourceCode, String className, String canonicalClassName)
 			throws Exception {
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 
@@ -36,7 +36,7 @@ public class Compiler {
 		ByteClassLoader byteClassLoader = new ByteClassLoader(new URL[0],
 				classLoader, fm.getClassFile().getByteArray());
 
-		Class<?> klass = byteClassLoader.loadClass("Test");
+		Class<?> klass = byteClassLoader.loadClass(canonicalClassName);
 		byteClassLoader.close();
 		return klass;
 	}

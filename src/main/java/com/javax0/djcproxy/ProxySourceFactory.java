@@ -130,19 +130,19 @@ class ProxySourceFactory<Proxy> {
 			types += sep + parameter.getCanonicalName() + ".class";
 			sep = ",";
 		}
-		sourceBuilder.append("try{");
+		sourceBuilder.append("\ntry{\n");
 		if (!"void".equals(returnType)) {
 			sourceBuilder.append("return ("
 					+ method.getReturnType().getCanonicalName() + ")");
 		}
-		sourceBuilder.append(INTERCEPTOR_FIELD_NAME + ".intercept("
+		sourceBuilder.append(INTERCEPTOR_FIELD_NAME + ".intercept(\n"
 				+ PROXY_OBJECT_FIELD_NAME + ", ");
-		sourceBuilder.append(INTERCEPTOR_FIELD_NAME
+		sourceBuilder.append(PROXY_OBJECT_FIELD_NAME
 				+ ".getClass().getMethod(\"" + method.getName() + "\", ");
-		sourceBuilder.append("new Class[]{" + types + "}), new Object[]{"
-				+ argnames + "});");
+		sourceBuilder.append("new Class[]{" + types + "}),\n new Object[]{"
+				+ argnames + "});\n");
 		sourceBuilder
-				.append("}catch(Exception e){throw new RuntimeException();}");
+				.append("}catch(Exception e){\nthrow new RuntimeException();\n}\n");
 
 		createMethodEnd();
 	}
