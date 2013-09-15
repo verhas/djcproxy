@@ -12,7 +12,7 @@ public class ProxySourceFactoryTest {
 
 		ProxySourceFactory<ProxySourceFactoryTest> factory = new ProxySourceFactory<>(
 				null);
-		String s = factory.create(this);
+		String s = factory.create(this.getClass());
 		System.out.println(s);
 
 	}

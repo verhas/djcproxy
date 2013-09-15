@@ -8,6 +8,8 @@ import java.util.List;
 
 import com.javax0.djcproxy.exceptions.FinalCanNotBeExtendedException;
 import com.javax0.djcproxy.utilities.Generics;
+import com.javax0.jscglib.JSC;
+import static com.javax0.jscglib.JSCBuilder.*;
 
 class ProxySourceFactory<Proxy> {
 	private final CallbackFilter callbackFilter;
@@ -16,26 +18,51 @@ class ProxySourceFactory<Proxy> {
 		this.callbackFilter = callbackFilter;
 	}
 
-	private StringBuilder sourceBuilder;
+	private JSC builder;
 	private Class<?> klass;
 
 	private String generatedClassName;
-	
+
 	public String getGeneratedClassName() {
 		return generatedClassName;
 	}
 
-	public String create(Proxy originalObject)
+	public String create(Class<?> originalClass)
 			throws FinalCanNotBeExtendedException {
-		sourceBuilder = new StringBuilder();
-		klass = originalObject.getClass();
+
+		klass = originalClass;
 		assertClassIsNotFinal();
-		appendClassStartSource();
-		for (Method method : originalObject.getClass().getMethods()) {
+		generatedClassName = "PROXY$CLASS$" + klass.getSimpleName();
+		builder = klass(generatedClassName)
+				.inPackage(klass.getPackage())
+				.modifier(
+						klass.getModifiers()
+								& ~(Modifier.STATIC | Modifier.PROTECTED))
+				.parent(klass)
+				.interfaces(ProxySetter.class)
+				.add(field(Object.class, PROXY_OBJECT_FIELD_NAME).initNull())
+				.add(field(MethodInterceptor.class, INTERCEPTOR_FIELD_NAME)
+						.initNull())
+				.add(method("void", "set" + PROXY_OBJECT_FIELD_NAME)
+						.modifier(Modifier.PUBLIC)
+						.arguments(
+								argument(Object.class, PROXY_OBJECT_FIELD_NAME))
+						.command(
+								"this." + PROXY_OBJECT_FIELD_NAME + " = "
+										+ PROXY_OBJECT_FIELD_NAME))
+				.add(method("void", "set" + INTERCEPTOR_FIELD_NAME)
+						.modifier(Modifier.PUBLIC)
+						.arguments(
+								argument(MethodInterceptor.class,
+										INTERCEPTOR_FIELD_NAME))
+						.command(
+								"this." + INTERCEPTOR_FIELD_NAME + " = "
+										+ INTERCEPTOR_FIELD_NAME))
+				.constructor();
+		for (Method method : originalClass.getMethods()) {
 			appendMethodSource(method);
 		}
-		appendClassEndSource();
-		return sourceBuilder.toString();
+		return builder.toString();
 	}
 
 	private void assertClassIsNotFinal() throws FinalCanNotBeExtendedException {
@@ -50,45 +77,15 @@ class ProxySourceFactory<Proxy> {
 	private static final String PROXY_OBJECT_FIELD_NAME = "PROXY$OBJECT";
 	private static final String INTERCEPTOR_FIELD_NAME = "PROXY$INTERCEPTOR";
 
-	private void appendClassStartSource() {
-		sourceBuilder.append(klass.getPackage().toString());
-		sourceBuilder.append(";\n");
-		if ((klass.getModifiers() & Modifier.PUBLIC) > 0) {
-			sourceBuilder.append("public ");
-		}
-		sourceBuilder.append("class ");
-		generatedClassName = "PROXY$CLASS$" + klass.getSimpleName();
-		sourceBuilder.append(generatedClassName);
-		sourceBuilder.append(" ");
-		sourceBuilder.append("extends ");
-		sourceBuilder.append(klass.getName().replaceAll("\\$", "."));
-		sourceBuilder.append(" ");
-		sourceBuilder.append("implements ");
-		sourceBuilder.append(ProxySetter.class.getCanonicalName());
-		sourceBuilder.append("{\n");
-		sourceBuilder.append("private Object " + PROXY_OBJECT_FIELD_NAME
-				+ " = null;\n");
-		sourceBuilder.append("private com.javax0.djcproxy.MethodInterceptor "
-				+ INTERCEPTOR_FIELD_NAME + " = null;\n");
-		sourceBuilder.append("public void set" + PROXY_OBJECT_FIELD_NAME
-				+ "(Object " + PROXY_OBJECT_FIELD_NAME + "){ this."
-				+ PROXY_OBJECT_FIELD_NAME + " = " + PROXY_OBJECT_FIELD_NAME
-				+ "; }\n");
-		sourceBuilder.append("public void set" + INTERCEPTOR_FIELD_NAME
-				+ "(com.javax0.djcproxy.MethodInterceptor "
-				+ INTERCEPTOR_FIELD_NAME + "){ this." + INTERCEPTOR_FIELD_NAME
-				+ " = " + INTERCEPTOR_FIELD_NAME + "; }\n");
-	}
-
 	private void appendMethodSource(Method method) {
-		if ((method.getModifiers() & Modifier.FINAL) == 0
-				&& (callbackFilter == null || callbackFilter.accept(method))) {
-			createInterceptorMethod(method);
+		if ((method.getModifiers() & Modifier.FINAL) == 0) {
+			boolean intercept = callbackFilter == null
+					|| callbackFilter.accept(method);
+			createInterceptorMethod(method, intercept);
 		}
-
 	}
 
-	private void createInterceptorMethod(Method method) {
+	private void createInterceptorMethod(Method method, boolean intercept) {
 		final String returnType = Generics.typeToString(method
 				.getGenericReturnType());
 		final String name = method.getName();
@@ -96,30 +93,18 @@ class ProxySourceFactory<Proxy> {
 		for (Type type : method.getGenericParameterTypes()) {
 			argTypeList.add(Generics.typeToString(type));
 		}
-		sourceBuilder.append("@Override ");
-		if ((method.getModifiers() & Modifier.PROTECTED) > 0) {
-			sourceBuilder.append("protected ");
-		}
-		if ((method.getModifiers() & Modifier.PUBLIC) > 0) {
-			sourceBuilder.append("public ");
-		}
-		sourceBuilder.append(returnType);
-		sourceBuilder.append(" ");
-		sourceBuilder.append(name);
-		sourceBuilder.append("(");
+		JSC[] arguments = new JSC[argTypeList.size()];
+
 		String argnames = "";
 		String sep = "";
 		int i = 0;
 		for (String type : argTypeList) {
-			i++;
-			sourceBuilder.append(sep);
-			sourceBuilder.append(type);
-			sourceBuilder.append(" ");
-			sourceBuilder.append("p" + i);
-			argnames = sep + "p" + i;
+			arguments[i] = argument(type, "p" + i);
+			argnames += sep + "p" + i;
 			sep = ",";
+			i++;
 		}
-		sourceBuilder.append("){\n");
+
 		Class<?>[] parameters = method.getParameterTypes();
 
 		String types = "";
@@ -130,29 +115,34 @@ class ProxySourceFactory<Proxy> {
 			types += sep + parameter.getCanonicalName() + ".class";
 			sep = ",";
 		}
-		sourceBuilder.append("\ntry{\n");
-		if (!"void".equals(returnType)) {
-			sourceBuilder.append("return ("
-					+ method.getReturnType().getCanonicalName() + ")");
+		StringBuilder sb = new StringBuilder();
+		if (intercept) {
+			sb.append("\ntry{\n");
+			if (!"void".equals(returnType)) {
+				sb.append("return ("
+						+ method.getReturnType().getCanonicalName() + ")");
+			}
+			sb.append(INTERCEPTOR_FIELD_NAME + ".intercept(\n"
+					+ PROXY_OBJECT_FIELD_NAME + ", ");
+			sb.append(PROXY_OBJECT_FIELD_NAME + ".getClass().getMethod(\""
+					+ method.getName() + "\", ");
+			sb.append("new Class[]{" + types + "}),\n new Object[]{" + argnames
+					+ "});\n");
+			sb.append("}catch(Exception e){\nthrow new RuntimeException(e);\n}\n");
+		} else {
+			if (!"void".equals(returnType)) {
+				sb.append("return ");
+			}
+			sb.append(PROXY_OBJECT_FIELD_NAME).append(".")
+					.append(method.getName()).append("(").append(argnames)
+					.append(");");
 		}
-		sourceBuilder.append(INTERCEPTOR_FIELD_NAME + ".intercept(\n"
-				+ PROXY_OBJECT_FIELD_NAME + ", ");
-		sourceBuilder.append(PROXY_OBJECT_FIELD_NAME
-				+ ".getClass().getMethod(\"" + method.getName() + "\", ");
-		sourceBuilder.append("new Class[]{" + types + "}),\n new Object[]{"
-				+ argnames + "});\n");
-		sourceBuilder
-				.append("}catch(Exception e){\nthrow new RuntimeException();\n}\n");
-
-		createMethodEnd();
-	}
-
-	private void createMethodEnd() {
-		sourceBuilder.append("}\n");
-	}
-
-	private void appendClassEndSource() {
-		sourceBuilder.append("}\n");
+		builder.add(method(returnType, name)
+				.annotation("@Override")
+				.modifier(
+						method.getModifiers()
+								& ~(Modifier.NATIVE | Modifier.ABSTRACT))
+				.arguments(arguments).commandBlock(sb.toString()));
 	}
 
 }
