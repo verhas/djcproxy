@@ -91,6 +91,7 @@ public class ProxyFactory<ClassToBeProxied> {
 		} catch (Exception e) {
 			unsafe = null;
 		}
+//		unsafe = null;
 		if (unsafe == null) {
 			Constructor<?> constructor = proxyClass.getDeclaredConstructor();
 			constructor.setAccessible(true);

@@ -1,5 +1,6 @@
 package com.javax0.djcproxy;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -40,7 +41,7 @@ class ProxySourceFactory<Proxy> {
 								& ~(Modifier.STATIC | Modifier.PROTECTED))
 				.parent(klass)
 				.interfaces(ProxySetter.class)
-				.add(field(Object.class, PROXY_OBJECT_FIELD_NAME).initNull())
+				.add(field(originalClass, PROXY_OBJECT_FIELD_NAME).initNull())
 				.add(field(MethodInterceptor.class, INTERCEPTOR_FIELD_NAME)
 						.initNull())
 				.add(method("void", "set" + PROXY_OBJECT_FIELD_NAME)
@@ -48,8 +49,9 @@ class ProxySourceFactory<Proxy> {
 						.arguments(
 								argument(Object.class, PROXY_OBJECT_FIELD_NAME))
 						.command(
-								"this." + PROXY_OBJECT_FIELD_NAME + " = "
-										+ PROXY_OBJECT_FIELD_NAME))
+								"this." + PROXY_OBJECT_FIELD_NAME + " = ("
+										+ originalClass.getCanonicalName()
+										+ ")" + PROXY_OBJECT_FIELD_NAME))
 				.add(method("void", "set" + INTERCEPTOR_FIELD_NAME)
 						.modifier(Modifier.PUBLIC)
 						.arguments(
@@ -57,8 +59,14 @@ class ProxySourceFactory<Proxy> {
 										INTERCEPTOR_FIELD_NAME))
 						.command(
 								"this." + INTERCEPTOR_FIELD_NAME + " = "
-										+ INTERCEPTOR_FIELD_NAME))
-				.constructor();
+										+ INTERCEPTOR_FIELD_NAME));
+		for (Constructor<?> constructor : klass.getConstructors()) {
+			Type[] types = constructor.getGenericParameterTypes();
+			builder.constructor(constructor(builder).arguments(
+					getArguments(types)).command(
+					"super(" + getCommaSeparatedArgumentLists(types.length)
+							+ ")"));
+		}
 		for (Method method : originalClass.getMethods()) {
 			appendMethodSource(method);
 		}
@@ -85,36 +93,57 @@ class ProxySourceFactory<Proxy> {
 		}
 	}
 
-	private void createInterceptorMethod(Method method, boolean intercept) {
-		final String returnType = Generics.typeToString(method
-				.getGenericReturnType());
-		final String name = method.getName();
+	private JSC[] getArguments(Type[] types) {
 		List<String> argTypeList = new LinkedList<>();
-		for (Type type : method.getGenericParameterTypes()) {
+		for (Type type : types) {
 			argTypeList.add(Generics.typeToString(type));
 		}
 		JSC[] arguments = new JSC[argTypeList.size()];
 
-		String argnames = "";
-		String sep = "";
 		int i = 0;
 		for (String type : argTypeList) {
 			arguments[i] = argument(type, "p" + i);
-			argnames += sep + "p" + i;
-			sep = ",";
 			i++;
 		}
+		return arguments;
+	}
 
-		Class<?>[] parameters = method.getParameterTypes();
+	private String getCommaSeparatedArgumentLists(int size) {
+		String argnames = "";
+		String sep = "";
+		for (int i = 0; i < size; i++) {
+			argnames += sep + "p" + i;
+			sep = ",";
+		}
+		return argnames;
+	}
 
+	private String getCommaSeparatedArgumentTypeLists(Class<?>[] parameters) {
 		String types = "";
-		i = 0;
-		sep = "";
+		String sep = "";
 		for (Class<?> parameter : parameters) {
-			i++;
 			types += sep + parameter.getCanonicalName() + ".class";
 			sep = ",";
 		}
+		return types;
+	}
+
+	private void appendReturnOptionally(StringBuilder sb, String returnType) {
+		if (!"void".equals(returnType)) {
+			sb.append("return ");
+		}
+	}
+
+	private void createInterceptorMethod(Method method, boolean intercept) {
+		final String returnType = Generics.typeToString(method
+				.getGenericReturnType());
+		final String name = method.getName();
+		Class<?>[] parameters = method.getParameterTypes();
+		JSC[] arguments = getArguments(method.getGenericParameterTypes());
+		String argnames = getCommaSeparatedArgumentLists(parameters.length);
+
+		String types = getCommaSeparatedArgumentTypeLists(parameters);
+
 		StringBuilder sb = new StringBuilder();
 		if (intercept) {
 			sb.append("\ntry{\n");
@@ -130,9 +159,7 @@ class ProxySourceFactory<Proxy> {
 					+ "});\n");
 			sb.append("}catch(Exception e){\nthrow new RuntimeException(e);\n}\n");
 		} else {
-			if (!"void".equals(returnType)) {
-				sb.append("return ");
-			}
+			appendReturnOptionally(sb, returnType);
 			sb.append(PROXY_OBJECT_FIELD_NAME).append(".")
 					.append(method.getName()).append("(").append(argnames)
 					.append(");");
