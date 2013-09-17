@@ -132,4 +132,21 @@ public class ProxyFactoryTest {
 		Assert.assertEquals(1, s.method());
 	}
 
+	private class ToString implements MethodInterceptor {
+
+		@Override
+		public Object intercept(Object obj, Method method, Object[] args)
+				throws Exception {
+			return "ToString interceptor";
+		}
+	}
+
+	@Test
+	public void given_ObjectFromJavaLang_when_CreatingProxy_ToStringIsIntercepted()
+			throws Exception {
+		Object o = new Object();
+		ProxyFactory<Object> factory = new ProxyFactory<>();
+		Object pxy = factory.create(o, new ToString());
+		Assert.assertEquals("ToString interceptor", pxy.toString());
+	}
 }
