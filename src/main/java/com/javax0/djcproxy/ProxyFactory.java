@@ -2,14 +2,48 @@ package com.javax0.djcproxy;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import com.javax0.jscc.Compiler;
 
 public class ProxyFactory<ClassToBeProxied> {
 
-	private CallbackFilter callbackFilter = null;
+	private static Map<Class<?>, Map<CallbackFilter, Class<?>>> cache = new WeakHashMap<>();
+
+	private Class<?> getProxyClass(Class<?> originalClass, CallbackFilter filter) {
+		Class<?> proxyClass = null;
+		Map<CallbackFilter, Class<?>> classCache = cache.get(originalClass);
+		if (classCache != null) {
+			proxyClass = classCache.get(filter);
+		}
+		return proxyClass;
+	}
+
+	private void put(Class<?> originalClass, CallbackFilter filter,
+			Class<?> proxyClass) {
+		Map<CallbackFilter, Class<?>> classCache = cache.get(originalClass);
+		if (classCache == null) {
+			classCache = new WeakHashMap<>();
+			cache.put(originalClass, classCache);
+		}
+		classCache.put(filter, proxyClass);
+	}
+
+	private CallbackFilter callbackFilter = new CallbackFilter() {
+		@Override
+		public boolean accept(Method method) {
+			return true;
+		}
+
+	};
 
 	public void setCallbackFilter(CallbackFilter callBackFilter) {
+		if (callbackFilter == null) {
+			throw new IllegalArgumentException(
+					"callback filter can not be null");
+		}
 		this.callbackFilter = callBackFilter;
 	}
 
@@ -52,11 +86,18 @@ public class ProxyFactory<ClassToBeProxied> {
 	 */
 	public ClassToBeProxied create(ClassToBeProxied originalObject,
 			MethodInterceptor interceptor) throws Exception {
-		Class<?> proxyClass = createClass(originalObject.getClass());
-		ProxySetter proxy = instantiateProxy(proxyClass);
-		proxy.setPROXY$OBJECT(originalObject);
-		proxy.setPROXY$INTERCEPTOR(interceptor);
-		return cast(proxy);
+		synchronized (cache) {
+			Class<?> proxyClass = getProxyClass(originalObject.getClass(),
+					callbackFilter);
+			if (proxyClass == null) {
+				proxyClass = createClass(originalObject.getClass());
+				put(originalObject.getClass(), callbackFilter, proxyClass);
+			}
+			ProxySetter proxy = instantiateProxy(proxyClass);
+			proxy.setPROXY$OBJECT(originalObject);
+			proxy.setPROXY$INTERCEPTOR(interceptor);
+			return cast(proxy);
+		}
 	}
 
 	/**
@@ -91,7 +132,7 @@ public class ProxyFactory<ClassToBeProxied> {
 		} catch (Exception e) {
 			unsafe = null;
 		}
-//		unsafe = null;
+		// unsafe = null;
 		if (unsafe == null) {
 			Constructor<?> constructor = proxyClass.getDeclaredConstructor();
 			constructor.setAccessible(true);
