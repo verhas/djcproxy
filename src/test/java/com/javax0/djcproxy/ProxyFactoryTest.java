@@ -3,8 +3,9 @@ package com.javax0.djcproxy;
 import java.lang.reflect.Method;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import test.QA;
 
 public class ProxyFactoryTest {
 
@@ -34,6 +35,19 @@ public class ProxyFactoryTest {
 		A a = new A();
 		ProxyFactory<A> factory = new ProxyFactory<>();
 		A s = factory.create(a, new Interceptor());
+		// careful: this calls toString, which is intercepted and returns
+		// Integer that will fail
+		// System.out.println(s);
+		Assert.assertEquals(0, s.method());
+	}
+
+	@Test
+	public void given_ObjectFromDifferentPackage_when_CreatingSource_then_GettingInterceptorResult()
+			throws Exception {
+
+		QA a = new QA();
+		ProxyFactory<QA> factory = new ProxyFactory<>();
+		QA s = factory.create(a, new Interceptor());
 		// careful: this calls toString, which is intercepted and returns
 		// Integer that will fail
 		// System.out.println(s);

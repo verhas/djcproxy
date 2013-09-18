@@ -28,14 +28,37 @@ class ProxySourceFactory<Proxy> {
 		return generatedClassName;
 	}
 
+	private void calculateClassName(Class<?> klass) {
+		generatedClassName = "PROXY$CLASS$" + klass.getSimpleName();
+	}
+
+	private String generatedPackageName;
+
+	public String getGeneratedPackageName() {
+		return generatedPackageName;
+	}
+
+	private void calculatePackageName(Package originalPackage) {
+		String originalPackageName = originalPackage.getName();
+		final String[] forbiddenPackages = new String[] { "java.", "javax." };
+		for (String prefix : forbiddenPackages) {
+			if (originalPackageName.startsWith(prefix)) {
+				generatedPackageName = "p."+ originalPackageName;
+				return;
+			}
+		}
+		generatedPackageName = originalPackageName;
+	}
+
 	public String create(Class<?> originalClass)
 			throws FinalCanNotBeExtendedException {
 
 		klass = originalClass;
 		assertClassIsNotFinal();
-		generatedClassName = "PROXY$CLASS$" + klass.getSimpleName();
+		calculateClassName(klass);
+		calculatePackageName(klass.getPackage());
 		builder = klass(generatedClassName)
-				.inPackage(klass.getPackage())
+				.inPackage(generatedPackageName)
 				.modifier(
 						klass.getModifiers()
 								& ~(Modifier.STATIC | Modifier.PROTECTED))

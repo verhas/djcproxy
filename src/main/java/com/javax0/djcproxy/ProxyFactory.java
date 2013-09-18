@@ -115,7 +115,7 @@ public class ProxyFactory<ClassToBeProxied> {
 		source = sourceFactory.create(originalClass);
 		Compiler compiler = new Compiler();
 		compiler.setClassLoader(originalClass.getClassLoader());
-		String classFQN = originalClass.getPackage().getName() + "."
+		String classFQN = sourceFactory.getGeneratedPackageName() + "."
 				+ sourceFactory.getGeneratedClassName();
 		Class<?> proxyClass = compiler.compile(source, classFQN);
 		return proxyClass;
