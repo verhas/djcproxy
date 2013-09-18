@@ -99,6 +99,7 @@ class ProxySourceFactory<Proxy> {
 	private void assertClassIsNotFinal() throws FinalCanNotBeExtendedException {
 
 		if ((klass.getModifiers() & Modifier.FINAL) > 0) {
+			
 			throw new FinalCanNotBeExtendedException("The class '"
 					+ klass.getCanonicalName()
 					+ "' is final. Proxy can not be created for final classes");

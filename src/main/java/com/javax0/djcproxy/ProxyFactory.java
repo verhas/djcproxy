@@ -47,6 +47,27 @@ public class ProxyFactory<ClassToBeProxied> {
 		this.callbackFilter = callBackFilter;
 	}
 
+	private ClassLoader classLoader = null;
+
+	/**
+	 * By the default the classloader used to load the original class is used to
+	 * load the proxy class. In some cases this does not work, when the original
+	 * class loader can not load the class {@see ProxySetter} and/or {@see
+	 * MethodInterceptor} classes. This is typically in the weird case when the
+	 * you want to proxy some of the system classes. In that case you can set
+	 * the classloader calling this method. For example you can
+	 * 
+	 * <pre>
+	 * ProxyFactory&lt;Object&gt; factory = new ProxyFactory&lt;&gt;();
+	 * factory.setClassLoader(this.getClass().getClassLoader());
+	 * </pre>
+	 * 
+	 * @param classLoader
+	 */
+	public void setClassLoader(ClassLoader classLoader) {
+		this.classLoader = classLoader;
+	}
+
 	private String source;
 
 	/**
@@ -114,7 +135,8 @@ public class ProxyFactory<ClassToBeProxied> {
 				callbackFilter);
 		source = sourceFactory.create(originalClass);
 		Compiler compiler = new Compiler();
-		compiler.setClassLoader(originalClass.getClassLoader());
+		compiler.setClassLoader(classLoader == null ? originalClass
+				.getClassLoader() : classLoader);
 		String classFQN = sourceFactory.getGeneratedPackageName() + "."
 				+ sourceFactory.getGeneratedClassName();
 		Class<?> proxyClass = compiler.compile(source, classFQN);

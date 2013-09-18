@@ -7,6 +7,9 @@ import org.junit.Test;
 
 import test.QA;
 
+import com.javax0.djcproxy.exceptions.FinalCanNotBeExtendedException;
+import com.javax0.djcproxy.filters.Filters;
+
 public class ProxyFactoryTest {
 
 	protected static class A {
@@ -23,6 +26,9 @@ public class ProxyFactoryTest {
 		@Override
 		public Object intercept(Object obj, Method method, Object[] args)
 				throws Exception {
+			if( method.getName().equals("toString")){
+				return "interceptedToString";
+			}
 			return 0;
 		}
 
@@ -35,9 +41,7 @@ public class ProxyFactoryTest {
 		A a = new A();
 		ProxyFactory<A> factory = new ProxyFactory<>();
 		A s = factory.create(a, new Interceptor());
-		// careful: this calls toString, which is intercepted and returns
-		// Integer that will fail
-		// System.out.println(s);
+		Assert.assertEquals("interceptedToString",s.toString());
 		Assert.assertEquals(0, s.method());
 	}
 
@@ -84,10 +88,19 @@ public class ProxyFactoryTest {
 		B a = new B();
 		ProxyFactory<B> factory = new ProxyFactory<>();
 		B s = factory.create(a, new Interceptor());
-		// careful: this calls toString, which is intercepted and returns
-		// Integer that will fail
-		// System.out.println(s);
 		Assert.assertEquals(0, s.method());
+	}
+
+	@Test
+	public void given_ObjectWithDefaultConstructorAndNonObjectFilter_when_CreatingSource_then_GettingInterceptorResult()
+			throws Exception {
+
+		B a = new B();
+		ProxyFactory<B> factory = new ProxyFactory<>();
+		factory.setCallbackFilter(Filters.nonObject());
+		B s = factory.create(a, new Interceptor());
+		Assert.assertEquals(0, s.method());
+		Assert.assertNotEquals("interceptedToString",s.toString());
 	}
 
 	@Test
@@ -156,10 +169,21 @@ public class ProxyFactoryTest {
 	}
 
 	@Test
-	public void given_ObjectFromJavaLang_when_CreatingProxy_ToStringIsIntercepted()
+	public void given_ObjectFromJavaLang_when_CreatingProxy_then_ToStringIsIntercepted()
 			throws Exception {
 		Object o = new Object();
 		ProxyFactory<Object> factory = new ProxyFactory<>();
+		factory.setClassLoader(this.getClass().getClassLoader());
+		Object pxy = factory.create(o, new ToString());
+		Assert.assertEquals("ToString interceptor", pxy.toString());
+	}
+
+	@Test(expected = FinalCanNotBeExtendedException.class)
+	public void given_FinalObjectFromJavaLang_when_CreatingProxy_then_ThrowsException()
+			throws Exception {
+		Integer o = new Integer(1);
+		ProxyFactory<Integer> factory = new ProxyFactory<>();
+		factory.setClassLoader(this.getClass().getClassLoader());
 		Object pxy = factory.create(o, new ToString());
 		Assert.assertEquals("ToString interceptor", pxy.toString());
 	}
