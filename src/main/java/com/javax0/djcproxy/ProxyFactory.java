@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import com.javax0.djcproxy.exceptions.ProxyClassCompilerError;
 import com.javax0.jscc.Compiler;
 
 public class ProxyFactory<ClassToBeProxied> {
@@ -104,6 +105,14 @@ public class ProxyFactory<ClassToBeProxied> {
 	 *            the object to be proxied
 	 * @return the new proxy object
 	 * @throws Exception
+	 *             when the proxy can not be created. This can be for several
+	 *             reasons. Identified reasons:
+	 * 
+	 *             <ul>
+	 *             <li>The original object is an instance of a final class
+	 *             <li>The original object is an inner class that is private and
+	 *             thus can not be extended.
+	 *             </ul>
 	 */
 	public ClassToBeProxied create(ClassToBeProxied originalObject,
 			MethodInterceptor interceptor) throws Exception {
@@ -123,7 +132,7 @@ public class ProxyFactory<ClassToBeProxied> {
 
 	/**
 	 * Create a new proxy class that is capable proxying an object that is an
-	 * instance of the class
+	 * instance of the class.
 	 * 
 	 * @param originalObject
 	 * @param interceptor
@@ -140,13 +149,27 @@ public class ProxyFactory<ClassToBeProxied> {
 		String classFQN = sourceFactory.getGeneratedPackageName() + "."
 				+ sourceFactory.getGeneratedClassName();
 		Class<?> proxyClass = compiler.compile(source, classFQN);
+		if (proxyClass == null) {
+			throw new ProxyClassCompilerError(compiler.getCompilerErrorOutput());
+		}
 		return proxyClass;
 	}
 
+	/**
+	 * Instantiate a proxy object from a proxyClass. Note that the created
+	 * object is
+	 * 
+	 * @param proxyClass
+	 * @return
+	 * @throws Exception
+	 */
 	@SuppressWarnings("restriction")
-	private ProxySetter instantiateProxy(Class<?> proxyClass) throws Exception {
+	public ProxySetter instantiateProxy(Class<?> proxyClass) throws Exception {
 		ProxySetter proxy;
 		sun.misc.Unsafe unsafe;
+		if (proxyClass == null) {
+			throw new IllegalArgumentException("proxyClass can not be null");
+		}
 		try {
 			Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
 			f.setAccessible(true);

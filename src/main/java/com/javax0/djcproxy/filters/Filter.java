@@ -2,9 +2,9 @@ package com.javax0.djcproxy.filters;
 
 import com.javax0.djcproxy.CallbackFilter;
 
-public class Filters {
+public class Filter {
 
-	private Filters() throws IllegalAccessException {
+	private Filter() throws IllegalAccessException {
 		throw new IllegalAccessException(
 				"Utility class should not be instantiated");
 	}
@@ -22,7 +22,7 @@ public class Filters {
 		return new And(a, b);
 	}
 
-	public static CallbackFilter name(String[] names) {
+	public static CallbackFilter intercept(String... names) {
 		return new Name(names);
 	}
 

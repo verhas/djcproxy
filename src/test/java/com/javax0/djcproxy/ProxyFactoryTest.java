@@ -8,7 +8,8 @@ import org.junit.Test;
 import test.QA;
 
 import com.javax0.djcproxy.exceptions.FinalCanNotBeExtendedException;
-import com.javax0.djcproxy.filters.Filters;
+import com.javax0.djcproxy.exceptions.ProxyClassCompilerError;
+import com.javax0.djcproxy.filters.Filter;
 
 public class ProxyFactoryTest {
 
@@ -26,7 +27,7 @@ public class ProxyFactoryTest {
 		@Override
 		public Object intercept(Object obj, Method method, Object[] args)
 				throws Exception {
-			if( method.getName().equals("toString")){
+			if (method.getName().equals("toString")) {
 				return "interceptedToString";
 			}
 			return 0;
@@ -41,7 +42,7 @@ public class ProxyFactoryTest {
 		A a = new A();
 		ProxyFactory<A> factory = new ProxyFactory<>();
 		A s = factory.create(a, new Interceptor());
-		Assert.assertEquals("interceptedToString",s.toString());
+		Assert.assertEquals("interceptedToString", s.toString());
 		Assert.assertEquals(0, s.method());
 	}
 
@@ -97,10 +98,10 @@ public class ProxyFactoryTest {
 
 		B a = new B();
 		ProxyFactory<B> factory = new ProxyFactory<>();
-		factory.setCallbackFilter(Filters.nonObject());
+		factory.setCallbackFilter(Filter.nonObject());
 		B s = factory.create(a, new Interceptor());
 		Assert.assertEquals(0, s.method());
-		Assert.assertNotEquals("interceptedToString",s.toString());
+		Assert.assertNotEquals("interceptedToString", s.toString());
 	}
 
 	@Test
@@ -159,7 +160,7 @@ public class ProxyFactoryTest {
 		Assert.assertEquals(1, s.method());
 	}
 
-	private class ToString implements MethodInterceptor {
+	private static class ToString implements MethodInterceptor {
 
 		@Override
 		public Object intercept(Object obj, Method method, Object[] args)
@@ -186,5 +187,52 @@ public class ProxyFactoryTest {
 		factory.setClassLoader(this.getClass().getClassLoader());
 		Object pxy = factory.create(o, new ToString());
 		Assert.assertEquals("ToString interceptor", pxy.toString());
+	}
+
+	private static class PartialInterceptor implements MethodInterceptor {
+
+		@Override
+		public Object intercept(Object obj, Method method, Object[] args)
+				throws Exception {
+			return "x";
+		}
+	}
+
+	public static class D {
+		public String a() {
+			return "a";
+		}
+
+		public String b() {
+			return "b";
+		}
+
+		public String c() {
+			return "c";
+		}
+	}
+
+	@Test
+	public void given_ObjectWithPartialInterceptor_when_CreatingProxy_then_OnlySpecifiedMethodsAreIntercepted()
+			throws Exception {
+		D d = new D();
+		ProxyFactory<D> factory = new ProxyFactory<>();
+		factory.setCallbackFilter(Filter.intercept("a", "b"));
+		D pxy = factory.create(d, new PartialInterceptor());
+		Assert.assertEquals("x", pxy.a());
+		Assert.assertEquals("x", pxy.b());
+		Assert.assertEquals("c", pxy.c());
+	}
+
+	private static class E {
+
+	}
+
+	@Test(expected = ProxyClassCompilerError.class)
+	public void given_NonAccessibleObject_when_CreatingProxy_then_CompilerException()
+			throws Exception {
+		E e = new E();
+		ProxyFactory<E> factory = new ProxyFactory<>();
+		E pxy = factory.create(e, new PartialInterceptor());
 	}
 }
