@@ -36,7 +36,20 @@ public class ProxyFactoryTest {
 	}
 
 	@Test
-	public void given_Object_when_CreatingSource_then_GettingInterceptorResult()
+	public void given_ObjectA_when_CreatingSource_then_SomeStringIsReturned()
+			throws Exception {
+
+		A a = new A();
+		ProxyFactory<A> factory = new ProxyFactory<>();
+		A s = factory.create(a, new Interceptor());
+		String generatedSource = factory.getGeneratedSource();
+		Assert.assertNotNull(generatedSource);
+		String className = factory.getGeneratedClassName();
+		Assert.assertNotNull(className);
+	}
+
+	@Test
+	public void given_ObjectA_when_CreatingSource_then_GettingInterceptorResult()
 			throws Exception {
 
 		A a = new A();
@@ -46,8 +59,17 @@ public class ProxyFactoryTest {
 		Assert.assertEquals(0, s.method());
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void given_ObjectA_when_SettingNullCallback_then_ThrowsIllegalArgumentException()
+			throws Exception {
+
+		A a = new A();
+		ProxyFactory<A> factory = new ProxyFactory<>();
+		factory.setCallbackFilter(null);
+	}
+
 	@Test
-	public void given_ObjectFromDifferentPackage_when_CreatingSource_then_GettingInterceptorResult()
+	public void given_ObjectQAFromDifferentPackage_when_CreatingSource_then_GettingInterceptorResult()
 			throws Exception {
 
 		QA a = new QA();
@@ -60,7 +82,7 @@ public class ProxyFactoryTest {
 	}
 
 	@Test
-	public void given_Object_when_CreatingSourceWithFilter_then_GettingOriginalResult()
+	public void given_ObjectA_when_CreatingSourceWithFilter_then_GettingOriginalResult()
 			throws Exception {
 
 		A a = new A();
@@ -83,7 +105,7 @@ public class ProxyFactoryTest {
 	}
 
 	@Test
-	public void given_ObjectWithDefaultConstructor_when_CreatingSource_then_GettingInterceptorResult()
+	public void given_ObjectBWithDefaultConstructor_when_CreatingSource_then_GettingInterceptorResult()
 			throws Exception {
 
 		B a = new B();
@@ -93,7 +115,7 @@ public class ProxyFactoryTest {
 	}
 
 	@Test
-	public void given_ObjectWithDefaultConstructorAndNonObjectFilter_when_CreatingSource_then_GettingInterceptorResult()
+	public void given_ObjectBWithDefaultConstructorAndNonObjectFilter_when_CreatingSource_then_GettingInterceptorResult()
 			throws Exception {
 
 		B a = new B();
@@ -105,7 +127,7 @@ public class ProxyFactoryTest {
 	}
 
 	@Test
-	public void given_ObjectWithDefaultConstructor_when_CreatingSourceWithFilter_then_GettingOriginalResult()
+	public void given_ObjectBWithDefaultConstructor_when_CreatingSourceWithFilter_then_GettingOriginalResult()
 			throws Exception {
 
 		B a = new B();
@@ -131,7 +153,7 @@ public class ProxyFactoryTest {
 	}
 
 	@Test
-	public void given_ObjectWithParametrizedConstructor_when_CreatingSource_then_GettingInterceptorResult()
+	public void given_ObjectCWithParametrizedConstructor_when_CreatingSource_then_GettingInterceptorResult()
 			throws Exception {
 
 		C a = new C(1);
@@ -144,7 +166,7 @@ public class ProxyFactoryTest {
 	}
 
 	@Test
-	public void given_ObjectWithParametrizedConstructor_when_CreatingSourceWithFilter_then_GettingOriginalResult()
+	public void given_ObjectCWithParametrizedConstructor_when_CreatingSourceWithFilter_then_GettingOriginalResult()
 			throws Exception {
 
 		C a = new C(1);
@@ -170,7 +192,7 @@ public class ProxyFactoryTest {
 	}
 
 	@Test
-	public void given_ObjectFromJavaLang_when_CreatingProxy_then_ToStringIsIntercepted()
+	public void given_ObjectObjectFromJavaLang_when_CreatingProxy_then_ToStringIsIntercepted()
 			throws Exception {
 		Object o = new Object();
 		ProxyFactory<Object> factory = new ProxyFactory<>();
@@ -233,6 +255,32 @@ public class ProxyFactoryTest {
 			throws Exception {
 		E e = new E();
 		ProxyFactory<E> factory = new ProxyFactory<>();
+		@SuppressWarnings("unused")
 		E pxy = factory.create(e, new PartialInterceptor());
 	}
+
+	private static class PassThroughInterceptor implements MethodInterceptor {
+		@Override
+		public Object intercept(Object obj, Method method, Object[] args)
+				throws Exception {
+			return "x" + method.invoke(obj, args) + "y";
+		}
+	}
+
+	public static class F {
+
+		public String q() {
+			return "a";
+		}
+	}
+
+	@Test
+	public void given_Object_when_CreatingProxy_then_InterceptorCallsTheOriginalMethod()
+			throws Exception {
+		F f = new F();
+		ProxyFactory<F> factory = new ProxyFactory<>();
+		F pxy = factory.create(f, new PassThroughInterceptor());
+		Assert.assertEquals("xay", pxy.q());
+	}
+
 }

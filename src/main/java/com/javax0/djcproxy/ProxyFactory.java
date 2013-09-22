@@ -3,34 +3,30 @@ package com.javax0.djcproxy;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.WeakHashMap;
 
 import com.javax0.djcproxy.exceptions.ProxyClassCompilerError;
 import com.javax0.jscc.Compiler;
 
+/**
+ * 
+ * Factory to create new proxy object. To create a proxy object you need a
+ * factory that is able to create new class that proxies the original object and
+ * also can compile the generated Java source and load the compiled class.
+ * <p>
+ * Usually there are many object created for the same class and for this reason
+ * a factory keeps track of the already generated classes and when a class can
+ * be reused it will not be generated again, but the already loaded class will
+ * be used.
+ * <p>
+ * 
+ * 
+ * @author Peter Verhas
+ * 
+ * @param <ClassToBeProxied>
+ */
 public class ProxyFactory<ClassToBeProxied> {
 
-	private static Map<Class<?>, Map<CallbackFilter, Class<?>>> cache = new WeakHashMap<>();
-
-	private Class<?> getProxyClass(Class<?> originalClass, CallbackFilter filter) {
-		Class<?> proxyClass = null;
-		Map<CallbackFilter, Class<?>> classCache = cache.get(originalClass);
-		if (classCache != null) {
-			proxyClass = classCache.get(filter);
-		}
-		return proxyClass;
-	}
-
-	private void put(Class<?> originalClass, CallbackFilter filter,
-			Class<?> proxyClass) {
-		Map<CallbackFilter, Class<?>> classCache = cache.get(originalClass);
-		if (classCache == null) {
-			classCache = new WeakHashMap<>();
-			cache.put(originalClass, classCache);
-		}
-		classCache.put(filter, proxyClass);
-	}
+	private ProxyClassCache<ClassToBeProxied> cache = new ProxyClassCache<>();
 
 	private CallbackFilter callbackFilter = new CallbackFilter() {
 		@Override
@@ -40,12 +36,12 @@ public class ProxyFactory<ClassToBeProxied> {
 
 	};
 
-	public void setCallbackFilter(CallbackFilter callBackFilter) {
+	public void setCallbackFilter(CallbackFilter callbackFilter) {
 		if (callbackFilter == null) {
 			throw new IllegalArgumentException(
 					"callback filter can not be null");
 		}
-		this.callbackFilter = callBackFilter;
+		this.callbackFilter = callbackFilter;
 	}
 
 	private ClassLoader classLoader = null;
@@ -116,18 +112,23 @@ public class ProxyFactory<ClassToBeProxied> {
 	 */
 	public ClassToBeProxied create(ClassToBeProxied originalObject,
 			MethodInterceptor interceptor) throws Exception {
-		synchronized (cache) {
-			Class<?> proxyClass = getProxyClass(originalObject.getClass(),
-					callbackFilter);
-			if (proxyClass == null) {
-				proxyClass = createClass(originalObject.getClass());
-				put(originalObject.getClass(), callbackFilter, proxyClass);
-			}
-			ProxySetter proxy = instantiateProxy(proxyClass);
-			proxy.setPROXY$OBJECT(originalObject);
-			proxy.setPROXY$INTERCEPTOR(interceptor);
-			return cast(proxy);
+		final Class<?> originalClass = originalObject.getClass();
+		final ClassLoader classLoader = calculateClassLoader(originalClass);
+		Class<?> proxyClass = cache.get(originalObject.getClass(),
+				callbackFilter, classLoader);
+		if (proxyClass == null) {
+			proxyClass = createClass(originalObject.getClass());
+			cache.put(originalClass, callbackFilter, classLoader, proxyClass);
 		}
+		ProxySetter proxy = instantiateProxy(proxyClass);
+		proxy.setPROXY$OBJECT(originalObject);
+		proxy.setPROXY$INTERCEPTOR(interceptor);
+		return cast(proxy);
+	}
+
+	private ClassLoader calculateClassLoader(Class<?> originalClass) {
+		return classLoader == null ? originalClass.getClassLoader()
+				: classLoader;
 	}
 
 	/**
@@ -143,9 +144,9 @@ public class ProxyFactory<ClassToBeProxied> {
 		ProxySourceFactory<ClassToBeProxied> sourceFactory = new ProxySourceFactory<>(
 				callbackFilter);
 		source = sourceFactory.create(originalClass);
+		generatedClassName = sourceFactory.getGeneratedClassName();
 		Compiler compiler = new Compiler();
-		compiler.setClassLoader(classLoader == null ? originalClass
-				.getClassLoader() : classLoader);
+		compiler.setClassLoader(calculateClassLoader(originalClass));
 		String classFQN = sourceFactory.getGeneratedPackageName() + "."
 				+ sourceFactory.getGeneratedClassName();
 		Class<?> proxyClass = compiler.compile(source, classFQN);
