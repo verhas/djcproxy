@@ -4,12 +4,12 @@ Dynamic Java Proxy Generator
 Using this library you can create proxy objects to an already existing object during run time. The use of this library is very similar to the use of cglib with the following differences:
 
 * Using this library you can create a proxy to an already existing object, while cglib helps you to create a new object along with the extending proxy object.
-* This library creates Java source on the file and does not do JVM byte manipulation.
+* This library creates Java source and does not do JVM byte manipulation.
 
 An example use of this library is to create immutable objects from an existing object. The immutable version will call the original method transparently so long as long the 
 
 
-Aí proxy object is an object that is an instance of a class that extends the class of the original object and can be used in the place of the original object, however instead calling the original methods of the original object the proxy object calls an interceptor method. The interceptor method can implement any functionality and can even call the original method.
+A proxy object is an object that is an instance of a class that extends the class of the original object and can be used in the place of the original object, however instead calling the original methods of the original object the proxy object calls an interceptor method. The interceptor method can implement any functionality and can even call the original method.
 
 To get a proxy object the caller can create a `ProxyFactory` and use the factory to generate proxy objects.
 
