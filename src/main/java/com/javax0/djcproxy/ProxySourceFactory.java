@@ -85,7 +85,7 @@ class ProxySourceFactory<Proxy> {
 										+ INTERCEPTOR_FIELD_NAME));
 		for (Constructor<?> constructor : klass.getConstructors()) {
 			Type[] types = constructor.getGenericParameterTypes();
-			builder.constructor(constructor(builder).arguments(
+			builder.add(constructor(builder).arguments(
 					getArguments(types)).command(
 					"super(" + getCommaSeparatedArgumentLists(types.length)
 							+ ")"));
