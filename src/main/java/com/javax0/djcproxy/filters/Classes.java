@@ -13,10 +13,10 @@ import com.javax0.djcproxy.CallbackFilter;
  * @author Peter Verhas
  * 
  */
-public class Objects implements CallbackFilter {
+public class Classes implements CallbackFilter {
 	private final List<Class<?>> classes;
 
-	public Objects(Class<?>... classes) {
+	public Classes(Class<?>... classes) {
 		this.classes = Arrays.asList(classes);
 	}
 

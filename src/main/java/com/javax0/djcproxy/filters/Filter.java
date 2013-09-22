@@ -12,7 +12,7 @@ public class Filter {
 	private static final CallbackFilter NON_OBJECT = new NonObject();
 	private static final CallbackFilter ALL = new All();
 	private static final CallbackFilter NONE = new None();
-	private static final CallbackFilter OBJECTS = new Objects();
+	private static final CallbackFilter OBJECT = not(nonObject());
 
 	public static CallbackFilter all() {
 		return ALL;
@@ -34,12 +34,16 @@ public class Filter {
 		return NON_OBJECT;
 	}
 
+	public static CallbackFilter object() {
+		return OBJECT;
+	}
+
 	public static CallbackFilter not(CallbackFilter a) {
 		return new Not(a);
 	}
 
-	public static CallbackFilter objects() {
-		return OBJECTS;
+	public static CallbackFilter classes(Class<?>... objects) {
+		return new Classes(objects);
 	}
 
 	public static CallbackFilter or(CallbackFilter a, CallbackFilter b) {
