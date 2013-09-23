@@ -27,29 +27,11 @@ For the object `y` to be a proxy of `x` it is necessary that the class of `y` ex
 Proxy objects are created using the `ProxyFactory` :
 
 ```
-
-ProxyFactory< A > factory = new ProxyFactory<>();
- 
-A s = factory.create(a, new Interceptor());
-
-```
-
-
-
-Some of the proxy methods call the original method on the original class, while other methods intercept the call calling the method `intercept()` of an interceptor object (see details later).
-
-
-
-A proxy object is an object that is an instance of a class that extends the class of the original object and can be used in the place of the original object, however instead calling the original methods of the original object the proxy object calls an interceptor method. The interceptor method can implement any functionality and can even call the original method.
-
-To get a proxy object the caller can create a `ProxyFactory` and use the factory to generate proxy objects.
-
-```
 ProxyFactory<A> factory = new ProxyFactory<>();
 A s = factory.create(a, new Interceptor());
 ```
 
-The first argument to the factory method `create()` is the original object, the second is an interceptor. The interceptor object implements the interface `MethodInterceptor` that has a single method, `intercept()`. This method is called whenever any of the original objects method is executed. The `MethodInterceptor` interface is very simple:
+The interceptor object implements the interface `MethodInterceptor` that has a single method, `intercept()`. This method is called whenever any of the original objects method is executed. The `MethodInterceptor` interface is very simple:
 
 ```
 public interface MethodInterceptor {
@@ -57,9 +39,11 @@ public interface MethodInterceptor {
 }
 ```
 
+Teh special functionality of the proxy lies in the interceptor. It is yur place to implement the functionality you want the proxy to do. The method `intercept()` you implement can do whatever you want the proxy functionality to be.
 
+The frist argument of the method is the original object. The second argument is the method, a reflection object that you can use to invoke the method on the original object. The third argument is the array of arguments passed to the method. You can pass these to the original object method unmodified or modified at your will when you apply the reflection invocation.
 
-In the following example the test method extends the class `A`. The class interceptor is a SAM (single abstract method) that can be defined as a closure in Java 8. The interceptor is invoked by the proxy object and the interceptor method can call the original method zero or more times and perform other tasks as well at the discretion of the interceptor.
+To see a whole example here is an excerpt from the unit test of djcproxy:
 
 ```
 	protected static class A {
@@ -96,5 +80,5 @@ In the following example the test method extends the class `A`. The class interc
 	}
 ```
 
-The sample above is from the unit test that documents the usage of the 
+The original class is `A`. When the proxy `s` is created it has the same type in the declaration and the same methods can be invoked on it. The interceptor checks the name of the method and if this is `toString()` then it returns a string, otherwise it returns `0`. When we call these methods on the object `s` the return value is not the one that the implementation of `A` would imply but rather the one that is returned by the interceptor.
 
