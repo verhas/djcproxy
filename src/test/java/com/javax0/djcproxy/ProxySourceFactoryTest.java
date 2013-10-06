@@ -42,6 +42,7 @@ public class ProxySourceFactoryTest {
 		ProxySourceFactory<ProxySourceFactoryTest> factory = new ProxySourceFactory<>(
 				null);
 		String s = factory.create(C.class);
+		System.out.println(s);
 		Assert.assertNotNull(s);
 		String className = factory.getGeneratedClassName();
 		Assert.assertNotNull(className);

@@ -43,7 +43,7 @@ class ProxySourceFactory<Proxy> {
 		final String[] forbiddenPackages = new String[] { "java.", "javax." };
 		for (String prefix : forbiddenPackages) {
 			if (originalPackageName.startsWith(prefix)) {
-				generatedPackageName = "p."+ originalPackageName;
+				generatedPackageName = "p." + originalPackageName;
 				return;
 			}
 		}
@@ -85,10 +85,12 @@ class ProxySourceFactory<Proxy> {
 										+ INTERCEPTOR_FIELD_NAME));
 		for (Constructor<?> constructor : klass.getConstructors()) {
 			Type[] types = constructor.getGenericParameterTypes();
-			builder.add(constructor(builder).arguments(
-					getArguments(types)).command(
-					"super(" + getCommaSeparatedArgumentLists(types.length)
-							+ ")"));
+			builder.add(constructor(builder)
+					.arguments(getArguments(types))
+					.command(
+							"super("
+									+ getCommaSeparatedArgumentLists(types.length)
+									+ ")"));
 		}
 		for (Method method : originalClass.getMethods()) {
 			appendMethodSource(method);
@@ -99,7 +101,7 @@ class ProxySourceFactory<Proxy> {
 	private void assertClassIsNotFinal() throws FinalCanNotBeExtendedException {
 
 		if ((klass.getModifiers() & Modifier.FINAL) > 0) {
-			
+
 			throw new FinalCanNotBeExtendedException("The class '"
 					+ klass.getCanonicalName()
 					+ "' is final. Proxy can not be created for final classes");
@@ -113,7 +115,10 @@ class ProxySourceFactory<Proxy> {
 		if ((method.getModifiers() & Modifier.FINAL) == 0) {
 			boolean intercept = callbackFilter == null
 					|| callbackFilter.accept(method);
-			createInterceptorMethod(method, intercept);
+			if (intercept) {
+				createMethodProxy(method);
+			}
+			createProxyMethod(method, intercept);
 		}
 	}
 
@@ -158,7 +163,70 @@ class ProxySourceFactory<Proxy> {
 		}
 	}
 
-	private void createInterceptorMethod(Method method, boolean intercept) {
+	private static String calculateMethodProxyImplementingClassName(
+			Method method) {
+		return method.getName() + "_MethodProxy";
+	}
+
+	private static String claculateMethodProxyFieldName(Method method) {
+		return method.getName() + "_MethodProxyInstance";
+	}
+
+	/**
+	 * For every intercepted method there is a class and an instance of the
+	 * class that implements the interface {@link MethodProxy}. Using this
+	 * method proxy it is possible to call the original method without
+	 * reflection being invoked. This is the same concept implemented in cglib,
+	 * though the interface and the naming is not 100% compatible.
+	 */
+	private void createMethodProxy(Method method) {
+		final String className = calculateMethodProxyImplementingClassName(method);
+		JSC klass = klass(className).modifier(
+				Modifier.STATIC | Modifier.PRIVATE).interfaces(
+				MethodProxy.class);
+		JSC invoke = method("invoke")
+				.modifier(Modifier.PUBLIC)
+				.arguments(argument(Object.class, "obj"),
+						argument((new Object[0]).getClass(), "args"))
+				.exceptions("Throwable").returnType(Object.class);
+		StringBuilder sb = new StringBuilder();
+		sb.append("return ((")
+				.append(method.getDeclaringClass().getCanonicalName())
+				.append(")obj).").append(method.getName()).append("(");
+		int paramNumber = method.getParameterTypes().length;
+		for (int index = 0; index < paramNumber; index++) {
+			if (index > 0) {
+				sb.append(",");
+			}
+			sb.append("args[" + index + "]");
+		}
+		sb.append(")");
+		invoke.command(sb.toString());
+		klass.add(invoke);
+		builder.add(klass);
+		JSC field = field(claculateMethodProxyFieldName(method))
+				.returnType(MethodProxy.class).modifier(Modifier.PRIVATE)
+				.initValue("new " + className + "()");
+		builder.add(field);
+	}
+
+	/**
+	 * Since the proxied object is not the super object of the proxy object the
+	 * method call has to be implemented in the proxy in all cases. The only
+	 * difference is that
+	 * <ul>
+	 * <li>has to be passed to the set interceptor if this method is to be
+	 * intercepted
+	 * <li>the original method on the proxied object has to be called directly
+	 * from this method if the method is not to be intercepted.
+	 * </ul>
+	 * 
+	 * @param method
+	 *            the method that is to be intercepted or invoked directly
+	 * @param intercept
+	 *            true if the method has to be intercepted.
+	 */
+	private void createProxyMethod(Method method, boolean intercept) {
 		final String returnType = Generics.typeToString(method
 				.getGenericReturnType());
 		final String name = method.getName();
@@ -180,8 +248,10 @@ class ProxySourceFactory<Proxy> {
 			sb.append(PROXY_OBJECT_FIELD_NAME + ".getClass().getMethod(\""
 					+ method.getName() + "\", ");
 			sb.append("new Class[]{" + types + "}),\n new Object[]{" + argnames
-					+ "});\n");
-			sb.append("}catch(Exception e){\nthrow new RuntimeException(e);\n}\n");
+					+ "},");
+			sb.append(claculateMethodProxyFieldName(method));
+			sb.append(");\n");
+			sb.append("}catch(Throwable e){\nthrow new RuntimeException(e);\n}\n");
 		} else {
 			appendReturnOptionally(sb, returnType);
 			sb.append(PROXY_OBJECT_FIELD_NAME).append(".")

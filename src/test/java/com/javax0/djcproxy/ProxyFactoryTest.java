@@ -25,8 +25,8 @@ public class ProxyFactoryTest {
 	private class Interceptor implements MethodInterceptor {
 
 		@Override
-		public Object intercept(Object obj, Method method, Object[] args)
-				throws Exception {
+		public Object intercept(Object obj, Method method, Object[] args,
+				MethodProxy mproxy) throws Exception {
 			if (method.getName().equals("toString")) {
 				return "interceptedToString";
 			}
@@ -185,8 +185,8 @@ public class ProxyFactoryTest {
 	private static class ToString implements MethodInterceptor {
 
 		@Override
-		public Object intercept(Object obj, Method method, Object[] args)
-				throws Exception {
+		public Object intercept(Object obj, Method method, Object[] args,
+				MethodProxy mproxy) throws Exception {
 			return "ToString interceptor";
 		}
 	}
@@ -214,8 +214,8 @@ public class ProxyFactoryTest {
 	private static class PartialInterceptor implements MethodInterceptor {
 
 		@Override
-		public Object intercept(Object obj, Method method, Object[] args)
-				throws Exception {
+		public Object intercept(Object obj, Method method, Object[] args,
+				MethodProxy mproxy) throws Exception {
 			return "x";
 		}
 	}
@@ -261,9 +261,18 @@ public class ProxyFactoryTest {
 
 	private static class PassThroughInterceptor implements MethodInterceptor {
 		@Override
-		public Object intercept(Object obj, Method method, Object[] args)
-				throws Exception {
+		public Object intercept(Object obj, Method method, Object[] args,
+				MethodProxy mproxy) throws Throwable {
 			return "x" + method.invoke(obj, args) + "y";
+		}
+	}
+
+	private static class PassThroughInterceptorUsingMethodProxy implements
+			MethodInterceptor {
+		@Override
+		public Object intercept(Object obj, Method method, Object[] args,
+				MethodProxy mproxy) throws Throwable {
+			return "x" + mproxy.invoke(obj, args) + "y";
 		}
 	}
 
@@ -280,6 +289,15 @@ public class ProxyFactoryTest {
 		F f = new F();
 		ProxyFactory<F> factory = new ProxyFactory<>();
 		F pxy = factory.create(f, new PassThroughInterceptor());
+		Assert.assertEquals("xay", pxy.q());
+	}
+
+	@Test
+	public void given_Object_when_CreatingProxy_then_InterceptorCallsTheOriginalMethodViaMethodProxy()
+			throws Exception {
+		F f = new F();
+		ProxyFactory<F> factory = new ProxyFactory<>();
+		F pxy = factory.create(f, new PassThroughInterceptorUsingMethodProxy());
 		Assert.assertEquals("xay", pxy.q());
 	}
 
