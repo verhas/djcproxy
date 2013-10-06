@@ -116,7 +116,7 @@ class ProxySourceFactory<Proxy> {
 			boolean intercept = callbackFilter == null
 					|| callbackFilter.accept(method);
 			if (intercept) {
-				createMethodProxy(method);
+				createProxyClassField(method);
 			}
 			createProxyMethod(method, intercept);
 		}
@@ -163,15 +163,17 @@ class ProxySourceFactory<Proxy> {
 		}
 	}
 
-	private static String calculateMethodProxyImplementingClassName(
-			Method method) {
-		return method.getName() + "_MethodProxy";
-	}
-
 	private static String claculateMethodProxyFieldName(Method method) {
 		return method.getName() + "_MethodProxyInstance";
 	}
 
+	private void createProxyClassField(Method method){
+		JSC field = field(claculateMethodProxyFieldName(method))
+				.returnType(MethodProxy.class).modifier(Modifier.PRIVATE)
+				.initValue("null");
+		builder.add(field);
+	}
+	
 	/**
 	 * For every intercepted method there is a class and an instance of the
 	 * class that implements the interface {@link MethodProxy}. Using this
@@ -179,11 +181,7 @@ class ProxySourceFactory<Proxy> {
 	 * reflection being invoked. This is the same concept implemented in cglib,
 	 * though the interface and the naming is not 100% compatible.
 	 */
-	private void createMethodProxy(Method method) {
-		final String className = calculateMethodProxyImplementingClassName(method);
-		JSC klass = klass(className).modifier(
-				Modifier.STATIC | Modifier.PRIVATE).interfaces(
-				MethodProxy.class);
+	private String createMethodProxy(Method method) {
 		JSC invoke = method("invoke")
 				.modifier(Modifier.PUBLIC)
 				.arguments(argument(Object.class, "obj"),
@@ -202,12 +200,7 @@ class ProxySourceFactory<Proxy> {
 		}
 		sb.append(")");
 		invoke.command(sb.toString());
-		klass.add(invoke);
-		builder.add(klass);
-		JSC field = field(claculateMethodProxyFieldName(method))
-				.returnType(MethodProxy.class).modifier(Modifier.PRIVATE)
-				.initValue("new " + className + "()");
-		builder.add(field);
+		return invoke.toString();
 	}
 
 	/**
@@ -239,6 +232,11 @@ class ProxySourceFactory<Proxy> {
 		StringBuilder sb = new StringBuilder();
 		if (intercept) {
 			sb.append("\ntry{\n");
+			String methodProxyFieldName = claculateMethodProxyFieldName(method);
+			sb.append("if( null == ").append(methodProxyFieldName).append("){")
+					.append(methodProxyFieldName).append(" = new com.javax0.djcproxy.MethodProxy() {")
+					.append(createMethodProxy(method))
+					.append("};}");
 			if (!"void".equals(returnType)) {
 				sb.append("return ("
 						+ method.getReturnType().getCanonicalName() + ")");

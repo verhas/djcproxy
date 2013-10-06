@@ -159,6 +159,8 @@ public class ProxyFactoryTest {
 		C a = new C(1);
 		ProxyFactory<C> factory = new ProxyFactory<>();
 		C s = factory.create(a, new Interceptor());
+		System.out.println(factory.getGeneratedSource());
+
 		// careful: this calls toString, which is intercepted and returns
 		// Integer that will fail
 		// System.out.println(s);
