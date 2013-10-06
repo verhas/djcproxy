@@ -96,7 +96,7 @@
 		<dependency>
 			<groupId>com.javax0</groupId>
 			<artifactId>jscc</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
+			<version>1.0.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.javax0</groupId>
