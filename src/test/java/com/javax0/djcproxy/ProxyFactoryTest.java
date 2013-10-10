@@ -10,6 +10,7 @@ import test.QA;
 import com.javax0.djcproxy.exceptions.FinalCanNotBeExtendedException;
 import com.javax0.djcproxy.exceptions.ProxyClassCompilerError;
 import com.javax0.djcproxy.filters.Filter;
+import com.javax0.djcproxy.interceptors.ThrowingInterceptor;
 
 public class ProxyFactoryTest {
 
@@ -159,7 +160,6 @@ public class ProxyFactoryTest {
 		C a = new C(1);
 		ProxyFactory<C> factory = new ProxyFactory<>();
 		C s = factory.create(a, new Interceptor());
-		System.out.println(factory.getGeneratedSource());
 
 		// careful: this calls toString, which is intercepted and returns
 		// Integer that will fail
@@ -303,4 +303,24 @@ public class ProxyFactoryTest {
 		Assert.assertEquals("xay", pxy.q());
 	}
 
+	public static class G {
+		private int i;
+
+		public int getI() {
+			return i;
+		}
+
+		public void setI(int i) {
+			this.i = i;
+		}
+	}
+
+	@Test
+	public void given_AClassWithArgumentedAndVoidMethod_when_CreatingProxy_then_MethodProxyCompiles()
+			throws Exception {
+		ProxyFactory<G> factory = new ProxyFactory<>();
+		G a = new G();
+		G b = factory
+				.create(a, new ThrowingInterceptor(new RuntimeException()));
+	}
 }

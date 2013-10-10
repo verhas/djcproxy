@@ -9,6 +9,7 @@ public class ProxyClassCache<ClassToBeProxied> {
 		ClassLoader classLoader;
 		CallbackFilter filter;
 		Class<?> originalClass;
+
 		@Override
 		public int hashCode() {
 			final int prime = 31;
@@ -21,6 +22,15 @@ public class ProxyClassCache<ClassToBeProxied> {
 					+ ((originalClass == null) ? 0 : originalClass.hashCode());
 			return result;
 		}
+
+		private boolean safeEquals(Object a, Object b) {
+			if (a == null && b == null)
+				return true;
+			if (a == null)
+				return false;
+			return a.equals(b);
+		}
+
 		@Override
 		public boolean equals(final Object obj) {
 			if (this == obj)
@@ -30,29 +40,20 @@ public class ProxyClassCache<ClassToBeProxied> {
 			if (getClass() != obj.getClass())
 				return false;
 			final Key other = (Key) obj;
-			if (classLoader == null) {
-				if (other.classLoader != null)
-					return false;
-			} else if (!classLoader.equals(other.classLoader))
+			if (!safeEquals(classLoader, other.classLoader))
 				return false;
-			if (filter == null) {
-				if (other.filter != null)
-					return false;
-			} else if (!filter.equals(other.filter))
+			if (!safeEquals(filter, other.filter))
 				return false;
-			if (originalClass == null) {
-				if (other.originalClass != null)
-					return false;
-			} else if (!originalClass.equals(other.originalClass))
+			if (!safeEquals(originalClass, other.originalClass))
 				return false;
 			return true;
 		}
-		
 	}
-	
+
 	private final Map<Key, Class<?>> cache = new WeakHashMap<>();
 
-	public Class<?> get(final Class<?> originalClass, final CallbackFilter filter,final ClassLoader classLoader) {
+	public Class<?> get(final Class<?> originalClass,
+			final CallbackFilter filter, final ClassLoader classLoader) {
 		final Key key = new Key();
 		key.originalClass = originalClass;
 		key.filter = filter;
@@ -61,8 +62,8 @@ public class ProxyClassCache<ClassToBeProxied> {
 		return proxyClass;
 	}
 
-	public void put(final Class<?> originalClass, final CallbackFilter filter, final ClassLoader classLoader,
-			final Class<?> proxyClass) {
+	public void put(final Class<?> originalClass, final CallbackFilter filter,
+			final ClassLoader classLoader, final Class<?> proxyClass) {
 		final Key key = new Key();
 		key.originalClass = originalClass;
 		key.filter = filter;

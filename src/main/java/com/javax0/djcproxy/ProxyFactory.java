@@ -36,6 +36,13 @@ public class ProxyFactory<ClassToBeProxied> {
 
 	};
 
+	/**
+	 * Set a valid callback filter.
+	 * 
+	 * @param callbackFilter
+	 *            is the callback filter object and can not be null. When null
+	 *            argument is passed {@link IllegalArgumentException} is thrown.
+	 */
 	public void setCallbackFilter(CallbackFilter callbackFilter) {
 		if (callbackFilter == null) {
 			throw new IllegalArgumentException(
@@ -94,6 +101,12 @@ public class ProxyFactory<ClassToBeProxied> {
 		return generatedClassName;
 	}
 
+	private String compilerErrorOutput;
+
+	public String getCompilerErrorOutput() {
+		return compilerErrorOutput;
+	}
+
 	/**
 	 * Create a new proxy object.
 	 * 
@@ -150,6 +163,7 @@ public class ProxyFactory<ClassToBeProxied> {
 		String classFQN = sourceFactory.getGeneratedPackageName() + "."
 				+ sourceFactory.getGeneratedClassName();
 		Class<?> proxyClass = compiler.compile(source, classFQN);
+		compilerErrorOutput = compiler.getCompilerErrorOutput();
 		if (proxyClass == null) {
 			throw new ProxyClassCompilerError(compiler.getCompilerErrorOutput());
 		}
@@ -158,7 +172,7 @@ public class ProxyFactory<ClassToBeProxied> {
 
 	/**
 	 * Instantiate a proxy object from a proxyClass. Note that the created
-	 * object is
+	 * object is not initialized properly.
 	 * 
 	 * @param proxyClass
 	 * @return

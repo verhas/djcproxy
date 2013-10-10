@@ -167,13 +167,13 @@ class ProxySourceFactory<Proxy> {
 		return method.getName() + "_MethodProxyInstance";
 	}
 
-	private void createProxyClassField(Method method){
+	private void createProxyClassField(Method method) {
 		JSC field = field(claculateMethodProxyFieldName(method))
 				.returnType(MethodProxy.class).modifier(Modifier.PRIVATE)
 				.initValue("null");
 		builder.add(field);
 	}
-	
+
 	/**
 	 * For every intercepted method there is a class and an instance of the
 	 * class that implements the interface {@link MethodProxy}. Using this
@@ -188,17 +188,26 @@ class ProxySourceFactory<Proxy> {
 						argument((new Object[0]).getClass(), "args"))
 				.exceptions("Throwable").returnType(Object.class);
 		StringBuilder sb = new StringBuilder();
-		sb.append("return ((")
-				.append(method.getDeclaringClass().getCanonicalName())
+		sb.append("((").append(method.getDeclaringClass().getCanonicalName())
 				.append(")obj).").append(method.getName()).append("(");
-		int paramNumber = method.getParameterTypes().length;
+		Class<?>[] parameterTypes = method.getParameterTypes();
+		int paramNumber = parameterTypes.length;
 		for (int index = 0; index < paramNumber; index++) {
 			if (index > 0) {
 				sb.append(",");
 			}
+			if (!parameterTypes[index].equals(Object.class)) {
+				sb.append("(").append(parameterTypes[index].getCanonicalName())
+						.append(")");
+			}
 			sb.append("args[" + index + "]");
 		}
 		sb.append(")");
+		if (method.getReturnType().getCanonicalName().equals("void")) {
+			sb.append("; return null");
+		} else {
+			sb.insert(0, "return ");
+		}
 		invoke.command(sb.toString());
 		return invoke.toString();
 	}
@@ -234,9 +243,9 @@ class ProxySourceFactory<Proxy> {
 			sb.append("\ntry{\n");
 			String methodProxyFieldName = claculateMethodProxyFieldName(method);
 			sb.append("if( null == ").append(methodProxyFieldName).append("){")
-					.append(methodProxyFieldName).append(" = new com.javax0.djcproxy.MethodProxy() {")
-					.append(createMethodProxy(method))
-					.append("};}");
+					.append(methodProxyFieldName)
+					.append(" = new com.javax0.djcproxy.MethodProxy() {")
+					.append(createMethodProxy(method)).append("};}");
 			if (!"void".equals(returnType)) {
 				sb.append("return ("
 						+ method.getReturnType().getCanonicalName() + ")");
