@@ -24,7 +24,7 @@ public class Generics {
 		if (type instanceof ParameterizedType) {
 			ParameterizedType parameterizedType = (ParameterizedType) type;
 			final Class<?> rawType = (Class<?>) parameterizedType.getRawType();
-			sb.append(rawType.getName());
+			sb.append(rawType.getCanonicalName());
 			boolean first = true;
 			for (Type typeArg : parameterizedType.getActualTypeArguments()) {
 				if (first) {
@@ -85,7 +85,7 @@ public class Generics {
 			sb.append("[]");
 		} else if (type instanceof Class) {
 			Class<?> typeClass = (Class<?>) type;
-			sb.append(typeClass.getName());
+			sb.append(typeClass.getCanonicalName());
 		} else {
 			throw new IllegalArgumentException("Unsupported type: " + type);
 		}

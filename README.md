@@ -5,6 +5,7 @@ Using this library you can create proxy objects to an already existing object du
 
 * measuring the time the program spends in certain methods
 * forbid the invocation some of the methods on a certain object (creating an immutable version of the object)
+* alter the behavior of certain methods
 * log the execution of the methods
 * many other things that a proxy class can do
 
@@ -82,3 +83,8 @@ To see a whole example here is an excerpt from the unit test of djcproxy:
 
 The original class is `A`. When the proxy `s` is created it has the same type in the declaration and the same methods can be invoked on it. The interceptor checks the name of the method and if this is `toString()` then it returns a string, otherwise it returns `0`. When we call these methods on the object `s` the return value is not the one that the implementation of `A` would imply but rather the one that is returned by the interceptor.
 
+Release History
+----------------
+* 2.0.1 bug fixes
+* 2.0.0 implemented MethodProxy to allow reflection bypassing in interceptors
+* 1.0.0 initial release
