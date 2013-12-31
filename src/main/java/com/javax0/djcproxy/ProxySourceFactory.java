@@ -1,5 +1,11 @@
 package com.javax0.djcproxy;
 
+import static com.javax0.jscglib.JSCBuilder.argument;
+import static com.javax0.jscglib.JSCBuilder.constructor;
+import static com.javax0.jscglib.JSCBuilder.field;
+import static com.javax0.jscglib.JSCBuilder.klass;
+import static com.javax0.jscglib.JSCBuilder.method;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -10,7 +16,6 @@ import java.util.List;
 import com.javax0.djcproxy.exceptions.FinalCanNotBeExtendedException;
 import com.javax0.djcproxy.utilities.Generics;
 import com.javax0.jscglib.JSC;
-import static com.javax0.jscglib.JSCBuilder.*;
 
 class ProxySourceFactory<Proxy> {
 	private final CallbackFilter callbackFilter;
@@ -93,9 +98,15 @@ class ProxySourceFactory<Proxy> {
 									+ ")"));
 		}
 		for (Method method : originalClass.getMethods()) {
-			appendMethodSource(method);
+			if (!isBridge(method)) {
+				appendMethodSource(method);
+			}
 		}
 		return builder.toString();
+	}
+
+	private boolean isBridge(Method method) {
+		return Modifier.isVolatile(method.getModifiers());
 	}
 
 	private void assertClassIsNotFinal() throws FinalCanNotBeExtendedException {
