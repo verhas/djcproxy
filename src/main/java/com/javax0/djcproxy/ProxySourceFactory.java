@@ -281,7 +281,8 @@ class ProxySourceFactory<Proxy> {
 				.modifier(
 						method.getModifiers()
 								& ~(Modifier.NATIVE | Modifier.ABSTRACT))
-				.arguments(arguments).commandBlock(sb.toString()));
+				.arguments(arguments).commandBlock(sb.toString())
+				.exceptions(method.getExceptionTypes()));
 	}
 
 }
