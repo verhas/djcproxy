@@ -174,12 +174,18 @@ class ProxySourceFactory<Proxy> {
 		}
 	}
 
-	private static String claculateMethodProxyFieldName(Method method) {
-		return method.getName() + "_MethodProxyInstance";
+	private static String calculateMethodProxyFieldName(Method method) {
+		StringBuilder parameterTypes = new StringBuilder();
+		for(Class<?> parameterClazz: method.getParameterTypes()) {
+			parameterTypes
+					.append('_')
+					.append(parameterClazz.getName().replace('.', '_'));
+		}
+		return method.getName() + parameterTypes.toString() + "_MethodProxyInstance";
 	}
 
 	private void createProxyClassField(Method method) {
-		JSC field = field(claculateMethodProxyFieldName(method))
+		JSC field = field(calculateMethodProxyFieldName(method))
 				.returnType(MethodProxy.class).modifier(Modifier.PRIVATE)
 				.initValue("null");
 		builder.add(field);
@@ -252,7 +258,7 @@ class ProxySourceFactory<Proxy> {
 		StringBuilder sb = new StringBuilder();
 		if (intercept) {
 			sb.append("\ntry{\n");
-			String methodProxyFieldName = claculateMethodProxyFieldName(method);
+			String methodProxyFieldName = calculateMethodProxyFieldName(method);
 			sb.append("if( null == ").append(methodProxyFieldName).append("){")
 					.append(methodProxyFieldName)
 					.append(" = new com.javax0.djcproxy.MethodProxy() {")
@@ -267,7 +273,7 @@ class ProxySourceFactory<Proxy> {
 					+ method.getName() + "\", ");
 			sb.append("new Class[]{" + types + "}),\n new Object[]{" + argnames
 					+ "},");
-			sb.append(claculateMethodProxyFieldName(method));
+			sb.append(calculateMethodProxyFieldName(method));
 			sb.append(");\n");
 			sb.append("}catch(Throwable e){\nthrow new RuntimeException(e);\n}\n");
 		} else {

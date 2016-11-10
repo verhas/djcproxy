@@ -323,4 +323,19 @@ public class ProxyFactoryTest {
 		G b = factory
 				.create(a, new ThrowingInterceptor(new RuntimeException()));
 	}
+
+	public static class H {
+		public String foo() { return ""; }
+		public String foo(String s) { return s; }
+	}
+
+	@Test
+	public void given_ObjectHWithOverloadedMethods_when_CreatingProxy_then_InterceptorCallsTheOriginalMethodViaMethodProxy()
+			throws Exception {
+		H h = new H();
+		ProxyFactory<H> factory = new ProxyFactory<>();
+		H pxy = factory.create(h, new PassThroughInterceptorUsingMethodProxy());
+		Assert.assertEquals("xy", pxy.foo());
+		Assert.assertEquals("xtesty", pxy.foo("test"));
+	}
 }
