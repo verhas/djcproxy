@@ -44,6 +44,10 @@ class ProxySourceFactory<Proxy> {
 	}
 
 	private void calculatePackageName(Package originalPackage) {
+		if (originalPackage == null) {
+			return;
+		}
+
 		String originalPackageName = originalPackage.getName();
 		final String[] forbiddenPackages = new String[] { "java.", "javax." };
 		for (String prefix : forbiddenPackages) {
